@@ -1,1 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stev Bingo</title>
 
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #101827;
+  color: white;
+  text-align: center;
+}
+
+header {
+  padding: 20px 10px;
+  background: #17243a;
+}
+
+h1 {
+  margin: 0;
+  font-size: 32px;
+}
+
+.subtitle {
+  color: #b9c5d8;
+  margin-top: 6px;
+}
+
+.container {
+  max-width: 500px;
+  margin: auto;
+  padding: 18px;
+}
+
+button {
+  border: 0;
+  border-radius: 10px;
+  padding: 13px 18px;
+  margin: 6px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.start {
+  background: #22c55e;
+  color: white;
+}
+
+.reset {
+  background: #ef4444;
+  color: white;
+}
+
+.call {
+  background: #f59e0b;
+  color: #111827;
+}
+
+#number {
+  font-size: 54px;
+  font-weight: bold;
+  margin: 18px 0;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 7px;
+  margin-top: 20px;
+}
+
+.cell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #26364f;
+  border-radius: 9px;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  user-select: none;
+}
+
+.cell.marked {
+  background: #22c55e;
+  color: white;
+}
+
+.free {
+  background: #6366f1;
+}
+
+.status {
+  margin-top: 18px;
+  padding: 12px;
+  background: #17243a;
+  border-radius: 10px;
+}
+
+.called {
+  margin-top: 15px;
+  color: #cbd5e1;
+  font-size: 14px;
+}
+
+footer {
+  margin-top: 25px;
+  padding: 20px;
+  color: #94a3b8;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>🎱 Stev Bingo</h1>
+  <div class="subtitle">Free Play Bingo</div>
+</header>
+
+<div class="container">
+
+  <button class="start" onclick="startGame()">Start Game</button>
+  <button class="call" onclick="callNumber()">Call Number</button>
+  <button class="reset" onclick="resetGame()">Reset</button>
+
+  <div id="number">--</div>
+
+  <div class="status" id="status">
+    Press Start Game to begin.
+  </div>
+
+  <div class="board" id="board"></div>
+
+  <div class="called">
+    Called numbers:
+    <div id="calledNumbers">None</div>
+  </div>
+
+</div>
+
+<footer>
+  Stev Bingo © 2026
+</footer>
+
+<script>
+let numbers = [];
+let calledNumbers = [];
+let playerNumbers = [];
+let gameStarted = false;
+
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+function createCard() {
+  playerNumbers = [];
+
+  const columns = [
+    Array.from({length:15}, (_,i) => i + 1),
+    Array.from({length:15}, (_,i) => i + 16),
+    Array.from({length:15}, (_,i) => i + 31),
+    Array.from({length:15}, (_,i) => i + 46),
+    Array.from({length:15}, (_,i) => i + 61)
+  ];
+
+  columns.forEach(column => shuffle(column));
+
+  for (let row = 0; row < 5; row++) {
+    for (let col = 0; col < 5; col++) {
+      if (row === 2 && col === 2) {
+        playerNumbers.push("FREE");
+      } else {
+        playerNumbers.push(columns[col][row]);
+      }
+    }
+  }
+
+  renderBoard();
+}
+
+function renderBoard() {
+  const board = document.getElementById("board");
+  board.innerHTML = "";
+
+  playerNumbers.forEach((number, index) => {
+    const cell = document.createElement("div");
+    cell.className = "cell";
+
+    if (number === "FREE") {
+      cell.classList.add("free", "marked");
+    }
+
+    cell.textContent = number;
+
+    cell.onclick = function() {
+      if (!gameStarted || number === "FREE") return;
+
+      if (calledNumbers.includes(number)) {
+        cell.classList.toggle("marked");
+        checkBingo();
+      }
+    };
+
+    board.appendChild(cell);
+  });
+}
+
+function startGame() {
+  numbers = Array.from({length:75}, (_,i) => i + 1);
+  shuffle(numbers);
+
+  calledNumbers = [];
+  gameStarted = true;
+
+  document.getElementById("number").textContent = "--";
+  document.getElementById("status").textContent =
+    "Game started! Call a number.";
+
+  document.getElementById("calledNumbers").textContent = "None";
+
+  createCard();
+}
+
+function callNumber() {
+  if (!gameStarted) {
+    alert("Start the game first.");
+    return;
+  }
+
+  if (numbers.length === 0) {
+    document.getElementById("status").textContent =
+      "All 75 numbers have been called.";
+    return;
+  }
+
+  const number = numbers.pop();
+
+  calledNumbers.push(number);
+
+  document.getElementById("number").textContent = number;
+
+  document.getElementById("calledNumbers").textContent =
+    calledNumbers.join(", ");
+
+  document.getElementById("status").textContent =
+    "Number " + number + " was called.";
+
+  updateBoard(number);
+}
+
+function updateBoard(number) {
+  const cells = document.querySelectorAll(".cell");
+
+  cells.forEach(cell => {
+    if (cell.textContent == number) {
+      cell.style.outline = "3px solid #f59e0b";
+    }
+  });
+}
+
+function checkBingo() {
+  const cells = [...document.querySelectorAll(".cell")];
+
+  const marked = cells.map(cell =>
+    cell.classList.contains("marked")
+  );
+
+  for (let row = 0; row < 5; row++) {
+    let win = true;
+
+    for (let col = 0; col < 5; col++) {
+      if (!marked[row * 5 + col]) {
+        win = false;
+      }
+    }
+
+    if (win) {
+      bingoWin();
+      return;
+    }
+  }
+
+  for (let col = 0; col < 5; col++) {
+    let win = true;
+
+    for (let row = 0; row < 5; row++) {
+      if (!marked[row * 5 + col]) {
+        win = false;
+      }
+    }
+
+    if (win) {
+      bingoWin();
+      return;
+    }
+  }
+
+  let diagonal1 = true;
+  let diagonal2 = true;
+
+  for (let i = 0; i < 5; i++) {
+    if (!marked[i * 5 + i]) {
+      diagonal1 = false;
+    }
+
+    if (!marked[i * 5 + (4 - i)]) {
+      diagonal2 = false;
+    }
+  }
+
+  if (diagonal1 || diagonal2) {
+    bingoWin();
+  }
+}
+
+function bingoWin() {
+  document.getElementById("status").textContent =
+    "🎉 BINGO! Congratulations! 🎉";
+
+  alert("🎉 BINGO! You won!");
+}
+
+function resetGame() {
+  gameStarted = false;
+  numbers = [];
+  calledNumbers = [];
+  playerNumbers = [];
+
+  document.getElementById("number").textContent = "--";
+  document.getElementById("status").textContent =
+    "Press Start Game to begin.";
+
+  document.getElementById("calledNumbers").textContent = "None";
+  document.getElementById("board").innerHTML = "";
+}
+</script>
+
+</body>
+</html>
